@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\PostResource;
 use App\Models\Post;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class PostController extends Controller
@@ -38,8 +39,8 @@ class PostController extends Controller
         //simpan ke database
         $post = Post::create([
             'image' => $image->hashName(),
-            'title' => $request->title,
-            'content' => $request->content,
+            'title' => $request->input('title'),
+            'content' => $request->input('content'),
         ]);
 
         //balikan/return post resource
@@ -53,5 +54,39 @@ class PostController extends Controller
 
         //return single post
         return new PostResource(true, 'Detail Data Post', $post);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'title' => 'required',
+            'content' => 'required'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        $post = Post::find($id);
+
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $image->storeAs('public/posts', $image->hashName());
+
+            Storage::delete('public/posts/' . basename($post->image));
+
+            $post->update([
+                'image' => $image->hashName(),
+                'title' => $request->input('title'),
+                'content' => $request->input('content'),
+            ]);
+        } else {
+            $post->update([
+                'title' => $request->input('title'),
+                'content' => $request->input('content'),
+            ]);
+        }
+
+        return new PostResource(true, 'Data Post Berhasil Diubah !', $post);
     }
 }

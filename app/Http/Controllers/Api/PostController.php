@@ -58,17 +58,21 @@ class PostController extends Controller
 
     public function update(Request $request, $id)
     {
+        //validasi input
         $validator = Validator::make($request->all(), [
             'title' => 'required',
             'content' => 'required'
         ]);
 
+        //check error
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
         }
 
+        //ambil data per post
         $post = Post::find($id);
 
+        //check request ada image atau tidak
         if ($request->hasFile('image')) {
             $image = $request->file('image');
             $image->storeAs('public/posts', $image->hashName());
@@ -88,5 +92,19 @@ class PostController extends Controller
         }
 
         return new PostResource(true, 'Data Post Berhasil Diubah !', $post);
+    }
+
+    public function destroy($id)
+    {
+        //ambil per post
+        $post = Post::find($id);
+
+        //hapus data gambar di storage
+        Storage::delete('public/posts/' . basename($post->image));
+
+        //delete data di database
+        $post->delete();
+
+        return new PostResource(true, 'Data Post Berhasil Dihapus', null);
     }
 }
